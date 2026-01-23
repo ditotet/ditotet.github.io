@@ -1,1 +1,265 @@
-<h1>Test</h1>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lili - Partner Dashboard</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #f5f7fa;
+      }
+      
+      .partner-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px 40px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      
+      .partner-logo { font-size: 24px; font-weight: bold; }
+      
+      .dashboard-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 40px 20px;
+      }
+      
+      .fuse-section {
+        background: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      }
+      
+      .fuse-controls {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 25px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      
+      .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      
+      .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+      }
+      
+      .input-group {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      
+      .input-group input, .input-group select {
+        padding: 8px 12px;
+        border: 2px solid #e9ecef;
+        border-radius: 6px;
+        min-width: 200px;
+      }
+      
+      #fundbox-app-wrapper {
+        border: 2px solid #e9ecef;
+        border-radius: 10px;
+        padding: 20px;
+        height: 100vh;
+        background: #fafbfc;
+        overflow: auto;
+      }
+      
+      .console-log {
+        background: #2d3748;
+        color: #e2e8f0;
+        padding: 20px;
+        border-radius: 8px;
+        font-family: monospace;
+        font-size: 13px;
+        max-height: 300px;
+        overflow-y: auto;
+        margin-top: 20px;
+      }
+    </style>
+
+    <script>
+      // ============================================
+      // CONFIGURATION - EDIT THESE VALUES
+      // ============================================
+      let lead_id = '4282' 
+      const CONFIG = {
+        RDE_NAME: 'ditotet',                        // Your GitHub/RDE username
+        PARTNER_ID: '6SWS6QXL27',                     // Lili partner ID
+
+        // RDE_NAME: 'lili-testing-dev',
+        // PARTNER_ID: 'EWFKID8IMY',                     // Lili partner ID
+
+        // RDE_NAME: 'lili-demo-v2',
+        // PARTNER_ID: 'F8HIAPDAP4',
+
+        PARTNER_NAME: 'Lili',                         // Partner name
+        PARTNER_USER_ID: '09202696-9940-4623-af38-863797c85afelead_id_' + lead_id,  // Test user ID
+        // PARTNER_USER_ID: '09202696-9940-4623-af38-863797c85afe',  // Test user ID
+        AUTO_OPEN: false,                              // Auto-open on load
+        AUTO_OPEN_DELAY: 1000                         // Delay in ms
+      };
+
+      // Build RDE URL
+      const RDE_DOMAIN = `app-${CONFIG.RDE_NAME}-rde.fbx.im`;
+      // const RDE_DOMAIN = `app-lili-testing-dev.fbx.im`;
+    //   const RDE_DOMAIN = `app-lili-demo-v2.fundbox.com`;
+      
+      const FUSE_SCRIPT_URL = `https://${RDE_DOMAIN}/static/dist/fuse/v1/fuse.js`;
+
+      // Console logger
+      function log(message, type = 'info') {
+        const timestamp = new Date().toLocaleTimeString();
+        const consoleLog = document.getElementById('console-log');
+        if (consoleLog) {
+          const logEntry = document.createElement('pre');
+          logEntry.style.color = {
+            info: '#63b3ed', success: '#68d391', 
+            error: '#fc8181', warn: '#f6ad55'
+          }[type] || '#e2e8f0';
+          logEntry.textContent = `[${timestamp}] ${message}`;
+          consoleLog.appendChild(logEntry);
+          consoleLog.scrollTop = consoleLog.scrollHeight;
+        }
+        console.log(`[${type.toUpperCase()}]`, message);
+      }
+
+      // Load Fuse script
+      (function(id) {
+        const script = document.createElement('script');
+        script.id = id;
+        script.type = 'text/javascript';
+        script.onerror = () => log(`Failed to load Fuse from ${FUSE_SCRIPT_URL}`, 'error');
+        script.onload = () => log('Fuse script loaded successfully', 'success');
+        document.currentScript.parentNode.insertBefore(script, document.currentScript);
+        script.src = FUSE_SCRIPT_URL;
+        log(`Loading Fuse from: ${FUSE_SCRIPT_URL}`, 'info');
+      })('fuse-script');
+
+      // Initialize Fuse
+      function onFuseAPIReady() {
+        log('FuseAPI ready callback triggered', 'info');
+        try {
+          window.FbxFuseClient = new FbxFuse(CONFIG.PARTNER_ID, {
+            container: document.querySelector('#fundbox-app-wrapper'),
+            events: {
+              onStateReady: (e) => log(`State Ready: ${e.detail.state}`, 'success'),
+              onStateChange: (e) => log(`State Changed: ${e.detail.state}`, 'info'),
+              onError: (e) => log(`Fuse Error: ${JSON.stringify(e.detail)}`, 'error')
+            }
+          });
+          log(`Fuse client initialized with partner ID: ${CONFIG.PARTNER_ID}`, 'success');
+
+          if (CONFIG.AUTO_OPEN) {
+            setTimeout(openFundbox, CONFIG.AUTO_OPEN_DELAY);
+          }
+        } catch (error) {
+          log(`Error initializing Fuse: ${error.message}`, 'error');
+        }
+      }
+
+      // Open Fuse
+      function openFundbox() {
+        if (!window.FbxFuseClient) {
+          log('Fuse client not initialized yet', 'error');
+          return;
+        }
+        const partnerUserId = document.getElementById('partner-user-id')?.value || CONFIG.PARTNER_USER_ID;
+        const scenario = document.getElementById('test-scenario')?.value;
+
+        log(`Opening Fuse with user ID: ${partnerUserId}`, 'info');
+
+        if (scenario === 'new') {
+          window.FbxFuseClient.open({
+            partnerUserId: partnerUserId,
+            businessName: 'Test Business LLC',
+            email: 'lead_id_' + lead_id + '@outlook.com',
+            phone: '5551234567'
+          });
+        } else {
+          window.FbxFuseClient.open({ partnerUserId: partnerUserId });
+        }
+      }
+
+      // Close Fuse
+      function closeFundbox() {
+        if (window.FbxFuseClient?.close) {
+          window.FbxFuseClient.close();
+          log('Fuse closed', 'info');
+        }
+      }
+
+      // Initialize on page load
+      document.addEventListener('DOMContentLoaded', function() {
+        log('Partner test page loaded', 'info');
+        log(`RDE Domain: ${RDE_DOMAIN}`, 'info');
+        log(`Partner ID: ${CONFIG.PARTNER_ID}`, 'info');
+
+        const fuseContainer = document.getElementById('fundbox-app-wrapper');
+        if (fuseContainer) {
+          fuseContainer.setAttribute('data-fundbox-domain', RDE_DOMAIN);
+          fuseContainer.setAttribute('data-fundbox-partner-user-id', CONFIG.PARTNER_USER_ID);
+          fuseContainer.setAttribute('data-fundbox-id', "TEST123");
+          fuseContainer.setAttribute('data-fundbox-partner-name', CONFIG.PARTNER_NAME);
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <div class="partner-header">
+      <div class="partner-logo">Lili</div>
+      <nav>Dashboard | Transactions | Settings</nav>
+    </div>
+
+    <div class="dashboard-container">
+      <div class="fuse-section">
+        <h2>Fundbox Financing Integration</h2>
+        
+        <div class="fuse-controls">
+          <div class="input-group">
+            <label>Test Scenario:</label>
+            <select id="test-scenario">
+              <option value="existing">Existing User</option>
+              <option value="new">New User (Signup)</option>
+              <option value="custom">Custom User ID</option>
+            </select>
+          </div>
+          
+          <div class="input-group">
+            <label>User ID:</label>
+            <input type="text" id="partner-user-id" placeholder="partner_user_unique_id" />
+          </div>
+          
+          <button class="btn btn-primary" onclick="openFundbox()">Open Fuse</button>
+          <button class="btn" onclick="closeFundbox()">Close Fuse</button>
+        </div>
+        
+        <div id="fundbox-app-wrapper"
+
+        data-fundbox-auth-token="auth_token"
+
+             data-fundbox-partner-user-id=""
+             data-fundbox-partner-name="Lili">
+        </div>
+        
+        <div class="console-log" id="console-log">
+          <pre style="color: #63b3ed;">Console initialized...</pre>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
